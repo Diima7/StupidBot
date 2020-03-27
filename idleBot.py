@@ -178,13 +178,13 @@ if __name__ == '__main__':
             rec.listen()
             rec.save(arg3)
     else:
-        print('python idleBot.py list --> Show list of records.')
-        print('python idleBot.py [-b] [RECORD ID]')
+        print('python IdleBot.py list --> Show list of records.')
+        print('python IdleBot.py [-b] [RECORD ID]')
         print(' ^--> -b to use the Bot class to execute records.\n')
-        print('python idleBot.py [-r] "[WINDOW NAME]" "[RECORD FILE NAME]"')
+        print('python IdleBot.py [-r] "[WINDOW NAME]" "[RECORD FILE NAME]"')
         print(' ^--> -r record something.\n')
-        print('Example: idleBot.py -b 1234')
-        print('         idleBot.py -r Bluestacks TakeLoot')
+        print('Example: IdleBot.py -b 1234')
+        print('         IdleBot.py -r Bluestacks TakeLoot')
     
     
 conn.commit()
