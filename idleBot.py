@@ -57,18 +57,25 @@ class record():
         except:
             return False
         
-    def save(self,name,windows,desc):
+    def save(self,name):
         if self.data != []:
-            try:
-                pickle.dump(self.data, open(name+'.p','wb'))
-                conn = sqlite3.connect('packs.db')
-                c = conn.cursor()
-                c.execute('INSERT INTO packages VALUES ()')
-                print(name, 'gespeichert')
-                return True
-            except:
-                print('Fehler beim Speichern von', name)
-                return False
+            #try:
+            conn = sqlite3.connect('packs.db')
+            c = conn.cursor()
+            id = 1
+            for row in c.execute('SELECT * FROM packages'):
+                id+=1
+            zeit = str(datetime.datetime.now().time())
+            zeit1 = zeit.replace(':','-')[:8]
+            print('{},{},{},{},{} wird zur datenbank hinzugefügt.'.format(id,name,zeit1,len(self.data),self.window))
+            c.execute('INSERT INTO packages VALUES ({},"{}","{}",{},"{}")'.format(id,name,zeit1,len(self.data),self.window))
+            conn.commit()
+            pickle.dump(self.data, open(name+'.p','wb'))
+            print(name, 'gespeichert')
+            return True
+            #except:
+            #    print('Fehler beim Speichern von', name)
+            #    return False
         else:
             print('Data is empty')
             return False
@@ -126,9 +133,8 @@ if __name__ == '__main__':
     try:
         c.execute('CREATE TABLE packages (id INT,name TEXT,time DATE, actions INT, window TEXT)')
         conn.commit()
-        print('Datebank erstellt.')
     except:
-        print('Datenbank existiert')
+        pass
         
     if len(sys.argv) == 2:
         arg1 = sys.argv[1]
@@ -145,19 +151,25 @@ if __name__ == '__main__':
             c.execute('SELECT name, window FROM packages WHERE id=' + arg2)
             name,window = c.fetchone()
             idlebot = Bot(window)
+            print('Bot executing ({}) on Window:{}'.format(name,window))
             idlebot.execute(name + '.p')
     elif len(sys.argv) == 4:
         arg1 = sys.argv[1]
         arg2 = sys.argv[2]
         arg3 = sys.argv[3]
-        
+        if arg1 == '-r':
+            rec = record(arg2)
+            rec.listen()
+            rec.save(arg3)
     else:
         print('python idleBot.py list --> Show list of records.')
         print('python idleBot.py [-b] [RECORD ID]')
         print(' ^--> -b to use the Bot class to execute records.\n')
-        print('python idleBot.py [-r] "[WINDOW NAME]" "[RECORD NAME]" "[DESCRIPTION]"')
-        print(' ^--> -r record something. DESCRIPTION is Optional.\n')
+        print('python idleBot.py [-r] "[WINDOW NAME]" "[RECORD FILE NAME]"')
+        print(' ^--> -r record something.\n')
         print('Example: idleBot.py -b 1234')
-        print('         idleBot.py -r Bluestacks TakeLoot "Collect Loot from Kampagne"')
+        print('         idleBot.py -r Bluestacks TakeLoot')
     
     
+conn.commit()
+conn.close()
