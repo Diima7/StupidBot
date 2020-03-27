@@ -19,28 +19,33 @@ class Bot:
         try:
             rect = win32gui.GetWindowRect(self.hwnd)
             x,y = rect[0], rect[1]
-            w,h = rect[2]-x, rect[3]-y
-            return x,y
+            w,h = rect[2]-x, rect[3]-y  #1206 686
+            return x,y,w,h
         except:
             return False
         
-    def execute(self,file):
+    def execute(self,id):
         if self.hwnd == 0:
             print('Fenster nicht gefunden')
             return False
+        c.execute('SELECT name,WW,WH FROM packages WHERE id=' + str(id))
+        name,ww,wh = c.fetchone()
         try:
             win32gui.SetForegroundWindow(self.hwnd)
         except:
             print('SetForeground Failed')
-        data = pickle.load(open(file,'rb'))
+        data = pickle.load(open(name+'.p','rb'))
         starttime = data[0][2]
         for action in data:
             time.sleep(action[2]-starttime)
             starttime = action[2]
-            x,y = self.pos()
-            pyautogui.click(action[0]+x,action[1]+y)
+            x,y,w,h = self.pos()
+            XFaktor = w / ww
+            YFaktor = h / wh
+            mx,my = action[0] * XFaktor, action[1] * YFaktor
+            pyautogui.click(x + mx,y + my)
             
-class record():
+class record:
     global killswitch
     def __init__(self,window):
         self.window = window
@@ -53,22 +58,36 @@ class record():
             rect = win32gui.GetWindowRect(self.hwnd)
             x,y = rect[0], rect[1]
             w,h = rect[2]-x, rect[3]-y
-            return x,y
+            return x,y,w,h
         except:
             return False
-        
+    
+    def list(self):
+        print('ID   |  NAME')
+        print('----------')
+        conn = sqlite3.connect('packs.db')
+        c = conn.cursor()
+        packs = []
+        for row in c.execute('SELECT * FROM packages'):
+            packs.append(row)
+        return packs
+            
     def save(self,name):
         if self.data != []:
             #try:
             conn = sqlite3.connect('packs.db')
             c = conn.cursor()
+            if self.pos() != False:
+                x,y,w,h = self.pos()
+            else:
+                print('cant get width and hight')
+                return False
             id = 1
             for row in c.execute('SELECT * FROM packages'):
                 id+=1
             zeit = str(datetime.datetime.now().time())
             zeit1 = zeit.replace(':','-')[:8]
-            print('{},{},{},{},{} wird zur datenbank hinzugefügt.'.format(id,name,zeit1,len(self.data),self.window))
-            c.execute('INSERT INTO packages VALUES ({},"{}","{}",{},"{}")'.format(id,name,zeit1,len(self.data),self.window))
+            c.execute('INSERT INTO packages VALUES ({},"{}","{}",{},"{}",{},{})'.format(id,name,zeit1,len(self.data),self.window,w,h))
             conn.commit()
             pickle.dump(self.data, open(name+'.p','wb'))
             print(name, 'gespeichert')
@@ -85,9 +104,9 @@ class record():
         if killswitch:
             return False
         if self.pos() != False:
-            x1,y1 = self.pos()
-            x = x - x1
-            y = y - y1
+            x1,y1,w,h = self.pos()
+            x = (x - x1)
+            y = (y - y1)
         else:
             print('Problem with finding {}(s) position. Stopping.'.format(self.window))
             killswitch = True
@@ -103,11 +122,10 @@ class record():
                 self.record = False
                 print('Recording beendet..')
                 self.data.pop(0)
-                print(self.data)
                 killswitch = True
                 zeit = str(datetime.datetime.now().time())
                 zeit1 = zeit.replace(':','-')
-                name = 'Len({}) d({})'.format(len(self.data),zeit1[:8])
+                name = 'Saving {} Actions...'.format(len(self.data))
                 print(name, '--> self.Data')
                 return self.data
         if self.record:
@@ -128,22 +146,20 @@ class record():
             if keyboard.is_pressed('q'):
                 return True
       
+try:
+    c.execute('CREATE TABLE packages (id INT,name TEXT,time DATE, actions INT, window TEXT, WW INT, WH INT)')
+    conn.commit()
+except:
+    pass
 
 if __name__ == '__main__':
-    try:
-        c.execute('CREATE TABLE packages (id INT,name TEXT,time DATE, actions INT, window TEXT)')
-        conn.commit()
-    except:
-        pass
         
     if len(sys.argv) == 2:
         arg1 = sys.argv[1]
         if arg1 == 'list':
-            print('ID   |  NAME')
-            print('----------')
-            for row in c.execute('SELECT * FROM packages'):
+            pack = record('').list()
+            for row in pack:
                 print('{} | {}'.format(row[0], row[1]))
-            
     elif len(sys.argv) == 3:
         arg1 = sys.argv[1]
         arg2 = sys.argv[2]
@@ -152,7 +168,7 @@ if __name__ == '__main__':
             name,window = c.fetchone()
             idlebot = Bot(window)
             print('Bot executing ({}) on Window:{}'.format(name,window))
-            idlebot.execute(name + '.p')
+            idlebot.execute(arg2)
     elif len(sys.argv) == 4:
         arg1 = sys.argv[1]
         arg2 = sys.argv[2]
@@ -172,4 +188,3 @@ if __name__ == '__main__':
     
     
 conn.commit()
-conn.close()
