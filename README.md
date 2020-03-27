@@ -36,11 +36,13 @@
 ```
 ## SQL Structure
  TABLE packages (id INT, name TEXT, time DATE, actions INT, window TEXT, WW INT, WH INT)
- Actions = len(self.data) = Number of Saved Mouse Clicks
- WW = Window width
- WH = Window height
  
-### Use the Bot to execute some package.
+ * Actions = len(self.data) = Number of Saved Mouse Clicks
+ * WW = Window width
+ * WH = Window height
+ The height and width get saved to calculate where the Mouse needs to move, if the window get resized.
+ 
+## Use the Bot to execute some package.
 ```
    Bot.execute([ID])
 ```
